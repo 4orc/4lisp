@@ -42,12 +42,14 @@
 (defun cells (string &key (char #\,)) (splits string :char char :filter #'thing))
 
 (defun with-lines (file fun)
-  (with-open-file (s file) (loop (funcall fun (or (read-line s nil) (return))))))
+  (with-open-file (s file) (loop (funcall fun (cells (or (read-line s nil) (return)))))))
 
 (defun charn (x) (and (stringp x) (> (length x) 0) (char x (1- (length x)))))
+
+(defmethod add (x (y string)) y)
 ;;---------------------------------------------------------------------------
 (defstruct+ sample (_kept (make-array 2 :fill-pointer 0 :adjustable t)) (n 0) max ok)   
-(defun make-sample (&optional (max (!! keep)) (%make-sample :max max)))
+(defun make-sample (&optional (max (!! keep))) (%make-sample :max max))
 
 (defstruct+ num 
   (txt "") (at 0) (n 0) (w 1)  
@@ -59,10 +61,11 @@
 (defun make-sym (&optional s n) (%make-sym :txt s :at n))
 
 (defstruct+ row cells)
-(defun make-row (rows lst) (%make-row :_parent rows :cells lst :cooked (copy-list lst)))
+(defun make-row (lst) (%make-row :cells lst))
 
 (defstruct+ cols names all x y klass)
 (defun make-cols (lst)
+  (print 'cols)
   (let (all x y kl (at -1))
     (dolist (str lst (%make-cols :names lst :x x :y y :klass kl :all (reverse all)))
       (let* ((what (if (upper-case-p (char str 0)) #'make-num #'make-sym))
@@ -73,16 +76,18 @@
           (if (eq #\! (charn str)) (setf kl col)))))))
 
 (defstruct+ data _has cols)  
-(defun make-data (&optional src (i (%make-rows)))
-  (labels ((top.row.is.special  (x) (if (? i cols)
-                                     (push (add i x) (? i _has))
-                                     (setf (? i cols) (make-cols x)))))
-    (if (stringp src)
-      (with-lines src (lambda (line) (top.row.is.special (cells line))))
-      (mapcar #'top.row.is.special src))
-    i))
+(defun make-data (&optional src (data1 (%make-data)))
+  (labels ((fun (x) 
+                 (print (? data1 cols))
+                 (print 2)
+                  (if (? data1 cols) 
+                      (push (add data1 x) (? data1 _has)) 
+                      (setf (? data1 cols) (make-cols x)))))
+    (if (stringp src) (with-lines src #'fun) (mapcar #'fun src)) 
+    data1))
 ;;-------------------------------------------------------------------------
 (defmethod add ((i row) (x number))
+  (print 'row)
   (incf (? i n))
   (let ((size (length (? i _kept))))
     (cond ((< size  (? i max))
@@ -116,12 +121,12 @@
           (decf s1 (exp (* w (/ (- x y) n))))
           (decf s2 (exp (* w (/ (- y x) n)))))))))
 
-(defmethod around ((row1 row) allrows data)
+(defmethod around ((row1 row) rows data)
   (labels ((two (row2) (cons (dists row1 row2 data) row2)))
-    (sort (mapcar #'two allrows) 'car<)))
+    (sort (mapcar #'two rows) 'car<)))
 
-(defmethod far ((i row) allrows data)
-  (cdr (elt (around i allrows data) (floor (* (length allrows) (!! far))))))
+(defmethod far ((row1 row) rows data)
+  (cdr (elt (around row1 rows data) (floor (* (length rows) (!! far))))))
 
 (defmethod dists ((row1 row) (row2 row) data)
   (let ((d 0) (n 0))
@@ -150,16 +155,13 @@
          (right (far   left some data1))
          (c     (dists left right data1))
          (n 0)  lefts rights)
-    (labels ((project (row)
-                (let ((a (dists row left data1))
-                      (b (dists row right data1)))
-                  (cons (/ (+ (* a a) (* c c) (- (* b b))) (* 2 c)) row))))
+    (labels ((project (row) (let ((a (dists row left data1))
+                                  (b (dists row right data1)))
+                              (cons (/ (+ (* a a) (* c c) (- (* b b))) (* 2 c)) row))))
       (dolist (one (sort (mapcar #'project all) #'car<))
         (if (<= (incf n) (/ (length all) 2))
           (push (cdr one) lefts)
           (push (cdr one) rights)))
       (values left right lefts rights c))))
 ;;-----------------------------------------
-(print (make-cols '("aa" "Naa" "Ccc-")))
-
-;(with-lines "../data/auto93.csv" (lambda (row) (print (cells row))))
+(make-data "../data/auto93.csv")
