@@ -48,21 +48,22 @@
 (defun charn (x) (and (stringp x) (> (length x) 0) (char x (1- (length x)))))
 ;;---------------------------------------------------------------------------
 (defstruct+ sample (_kept (make-array 2 :fill-pointer 0 :adjustable t)) (n 0) max ok)   
-(defun make-sample (&optional (max (!! keep))) (%make-sample :max max))
 
 (defstruct+ num 
   (txt "") (at 0) (n 0) (w 1)  
   (lo most-positive-fixnum) (hi most-negative-fixnum) (_has (make-sample)))     
-(defun make-num (&optional (s "") (n 0)) ;;; create
-  (%make-num :txt s :at n :w (if (eq #\- (charn s)) -1 1)))
 
 (defstruct+ sym (txt "") (at 0) (n 0) has)   
-(defun make-sym (&optional s n) (%make-sym :txt s :at n))
 
 (defstruct+ row cells)
-(defun make-row (lst) (%make-row :cells lst))
 
-(defmethod add ((self row) (x number))
+(defstruct+ cols names all x y klass)
+
+(defstruct+ data _has cols)  
+;;---------------------------------------------------------------------------
+(defun make-sample (&optional (max (!! keep))) (%make-sample :max max))
+
+(defmethod add ((self sample) (x number))
   (incf (? self n))
   (let ((size (length (? self _kept))))
     (cond ((< size  (? self max))
@@ -72,18 +73,20 @@
            (setf (? self ok) nil)
            (setf (elt (? self _kept) (randi size)) x)))))
 
-(defmethod per ((self row) p)
+(defmethod sorted ((self sample))
+  (unless (? self ok) (sort (? self _kept) #'<))
+  (setf (? self ok) t)
+  (? self _kept))
+
+(defmethod per ((self sample) p)
   (let* ((all (sorted self))
          (n  (1- (length all))))
     (elt all (max 0 (min n (floor (* p n)))))))
 
-(defmethod mid ((self row)) (per self .5))
-(defmethod div ((self row)) (/ (- (per self .9) (per self .1)) 2.58))
-
-(defmethod sorted ((self row))
-  (unless (? self ok) (sort (? self _kept) #'<))
-  (setf (? self ok) t)
-  (? self _kept))
+(defmethod mid ((self sample)) (per self .5))
+(defmethod div ((self sample)) (/ (- (per self .9) (per self .1)) 2.58))
+;;---------------------------------------------------------------------------
+(defun make-row (lst) (%make-row :cells lst))
 
 (defmethod better ((row1 row) (row2 row) data1)
   (let* ((s1 0) (s2 0)
@@ -112,7 +115,6 @@
         (incf d (expt d1 (!! p)))))
     (expt (/ d n) (/ 1 (!! p)))))
 ;;---------------------------------------------------------------------------
-(defstruct+ cols names all x y klass)
 (defun make-cols (lst)
   (let (all x y kl (at -1))
     (dolist (str lst (%make-cols :names lst :x x :y y :klass kl :all (reverse all)))
@@ -122,16 +124,10 @@
         (unless (eq #\X (charn str))
           (if (member (charn str) '(#\! #\- #\+)) (push col y) (push col x))
           (if (eq #\! (charn str)) (setf kl col)))))))
+;;---------------------------------------------------------------------------
+(defun make-num (&optional (s "") (n 0)) ;;; create
+  (%make-num :txt s :at n :w (if (eq #\- (charn s)) -1 1)))
 
-(defstruct+ data _has cols)  
-(defun make-data (&optional src (self (%make-data)))
-  (labels ((fun (x) (if (? self cols) 
-                      (push (add self x) (? self _has))
-                      (setf (? self cols) (make-cols x)))))
-    (if (stringp src) (with-lines src #'fun) (mapcar #'fun src)) 
-    self))
-;;-------------------------------------------------------------------------
-;;-------------------------------------------------------------------------
 (defmethod add ((self num) x) ;;; Add one thing, updating 'lo,hi'
   (unless (eq x "?")
     (with-slots (lo hi) self
@@ -142,7 +138,9 @@
 
 (defmethod mid ((i num)) (mid (? i _has)))
 (defmethod div ((i num)) (div (? i _has)))
-;;------------------------------------
+;;-------------------------------------------------------------------------
+(defun make-sym (&optional s n) (%make-sym :txt s :at n))
+
 (defmethod add ((self sym) x)
   (unless (equalp "?" x)
     (incf (? self n) 1)
@@ -154,6 +152,16 @@
   (labels ((fun (p) (* -1 (* p (log p 2)))))
     (loop for (_ . n) in (? i has) sum (fun (/ n (? i n))))))
 ;;------------------------------------------
+(defun make-data (&optional src (self (%make-data)))
+  (print 11)
+  (labels ((fun (x) (print 12)
+                (print (type-of x))
+                (if (? self cols) 
+                      (push (add self x) (? self _has))
+                      (setf (? self cols) (make-cols x)))))
+    (if (stringp src) (with-lines src #'fun) (mapcar #'fun src)) 
+    self))
+
 (defmethod clone ((self data) &optional src) 
   (make-data (cons (? self cols names) src)))
 
@@ -180,4 +188,5 @@
       (values left right lefts rights c))))
 ;;-----------------------------------------
 (print 10)
-(make-data "../data/auto93.csv")
+(with-lines "../data/auto93.csv" #'print)
+;(make-data "../data/auto93.csv")
