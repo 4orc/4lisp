@@ -22,13 +22,13 @@
 (defmethod print-object ((self struct) str)
   (format str "(~a ~{~a~^ ~})" (type-of self)
           (mapcar (lambda (x) (format nil ":~(~a~) ~a" x (slot-value self x))) 
-                  (slots self))))
+                  (show self))))
 
 (defmacro defstruct+ (x &body body) 
   `(progn 
      (defstruct (,x (:include struct)
                     (:constructor ,(intern (format nil "%MAKE-~a" x)))) ,@body)
-     (defmethod slots ((self ,x)) 
+     (defmethod show ((self ,x)) 
        ',(remove-if (lambda (x) (eq #\_ (char (symbol-name x) 0))) 
                     (mapcar (lambda (x) (if (consp x) (car x) x)) body)))))
 
