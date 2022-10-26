@@ -1,3 +1,5 @@
+(defun charn (s) (elt s (1- (length s))))
+
 (defun thing (x)
   (let ((y (string-trim '(#\Space #\Tab #\Newline) x)))
     (cond ((equal y "t") t)
@@ -15,7 +17,8 @@
 (defun cells (string) (splits string :char #\, :filter #'thing))
 
 (defun with-lines (file fn)
-  (with-open-file (s file) (loop (funcall fn (cells (or (read-line s nil) (return)))))))
+  (with-open-file (s file) 
+    (loop (funcall fn (cells (or (read-line s nil) (return)))))))
 
 (defstruct struct)
 (defmethod print-object ((self struct) str)
@@ -32,6 +35,27 @@
        (defmethod public-slots ((self ,x)) ',slots))))
 
 (defstruct+ fred (k 23) (a 1) (_b 2))
+(defstruct+ some (n 0) (max 512) _all)
+(defstruct+ num (n 0) (mu 0) (sd 0) (m2 0) (some (make-some)))
+(defstruct+ cols all x y klass)
+
+(defun make-cols (lst &aux (self (%make-cols)) (at -1))
+  (with-slots (all x y klass) self
+    (labels ((nump   (s) (upper-case-p (char s 0)))
+             (klassp (s) (eql #\! (charn s)))
+             (goalp  (s) (member (chran s) '(#\! #\+ #\-)))
+             (skipp  (s) (equal #\X charn s)))
+      (dolist (txt lst self)
+        (let ((col (if (nump txt) 
+                        (make-num :txt txt :at (incf at))
+                        (make-sym :txt txt :at (incf at)))))
+             (push all col)
+             (unless (skipp txt)
+               (if (klassp txt) (setf klass col))
+               (if (goalp txt) (push y col) (push x col))))))))
+
+
+
 
 (format t "~&~a" (%make-fred))
-;(with-lines "../data/auto93.csv" #'print)
+(print (make-cols nil));(with-lines "../data/auto93.csv" #'print)
