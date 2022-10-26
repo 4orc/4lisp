@@ -8,9 +8,9 @@
 
 (defun splits (str &key (char #\,) (filter #'identity))
   (loop for start = 0 then (1+ finish)
-    for        finish = (position char str :start start)
-    collecting (funcall filter (trim (subseq str start finish)))
-    until      (null finish)))
+        for        finish = (position char str :start start)
+        collecting (funcall filter (subseq str start finish))
+        until      (null finish)))
 
 (defun cells (string) (splits string :char #\, :filter #'thing))
 
@@ -18,23 +18,20 @@
   (with-open-file (s file) 
     (loop (funcall fun (cells (or (read-line s nil) (return)))))))
 
-(defun show-slots(self)
-  (labels ((slots (it) #+clisp (class-slots (class-of it))
-                       #+sbcl  (sb-mop:class-slots (class-of it)))
-           (name (x)   #+clisp (slot-definition-name x)
-                       #+sbcl  (sb-mop:slot-definition-name x)))
-    (remove-if (lambda (x) (eq #\_ (char (symbol-name x) 0))) 
-               (mapcar #'name (slots self)))))
-
-(defstruct my-structs)
-(defmethod print-object ((self my-structs) str) 
-  (labels ((show1 (y) (format nil ":~(~a~) ~a" y (slot-value self y))))
-    (format str "~a" (cons (type-of self) (mapcar #'show1 (show-slots self))))))
+(defstruct struct)
+(defmethod print-object ((self struct) str)
+  (format str "(~a ~{~a~^ ~})" (type-of self)
+          (mapcar (lambda (x) (format nil ":~(~a~) ~a" x (slot-value self x))) 
+                  (slots self))))
 
 (defmacro defstruct+ (x &body body) 
-  `(defstruct (,x (:include my-structs)
-                  (:constructor ,(intern (format nil "%MAKE-~a" x)))) ,@body))
+  `(progn 
+     (defstruct (,x (:include struct)
+                    (:constructor ,(intern (format nil "%MAKE-~a" x)))) ,@body)
+     (defmethod slots ((self ,x)) 
+       ',(remove-if (lambda (x) (eq #\_ (char (symbol-name x) 0))) 
+                    (mapcar (lambda (x) (if (consp x) (car x) x)) body)))))
 
 (defstruct+ fred (k 23) (a 1) (_b 2))
 
- (print (%make-fred))
+(print (%make-fred))
