@@ -1,22 +1,20 @@
-(defun trim (x) (string-trim '(#\Space #\Tab #\Newline) x))
-
-(defun thing (x &aux (y (trim x)))
-  (cond ((string= y "t") t)
-        ((string= y "nil") nil)
-        (t (let ((z (read-from-string y nil nil))) 
-             (if (numberp z) z y)))))
-
-(defun splits (str &key (char #\,) (filter #'identity))
-  (loop for start = 0 then (1+ finish)
-        for        finish = (position char str :start start)
-        collecting (funcall filter (subseq str start finish))
-        until      (null finish)))
-
-(defun cells (string) (splits string :char #\, :filter #'thing))
+(defun thing (x)
+  (let ((y (string-trim '(#\Space #\Tab #\Newline) x)))
+    (cond ((string= y "t") t)
+          ((string= y "nil") nil)
+          (t (let ((z (read-from-string y nil nil))) 
+               (if (numberp z) z y))))))
 
 (defun with-lines (file fun)
-  (with-open-file (s file) 
-    (loop (funcall fun (cells (or (read-line s nil) (return)))))))
+  (labels 
+    ((cells (string) (splits string :char #\, :filter #'thing))
+     (splits (str &key (char #\,) (filter #'identity))
+             (loop for start = 0 then (1+ finish)
+                   for        finish = (position char str :start start)
+                   collecting (funcall filter (subseq str start finish))
+                   until      (null finish))))
+    (with-open-file (s file) 
+      (loop (funcall fun (cells (or (read-line s nil) (return))))))))
 
 (defstruct struct)
 (defmethod print-object ((self struct) str)
