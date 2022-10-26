@@ -1,4 +1,7 @@
-(defun charn (s) (elt s (1- (length s))))
+(defmacro ? (s x &rest xs)
+ (if (null xs) `(slot-value ,s ',x) `(? (slot-value ,s ',x) ,@xs)))
+  
+  (defun charn (s) (elt s (1- (length s))))
 
 (defun thing (x)
   (let ((y (string-trim '(#\Space #\Tab #\Newline) x)))
@@ -34,8 +37,13 @@
                       (:constructor ,(intern (format nil "%MAKE-~a" x)))) ,@body)
        (defmethod public-slots ((self ,x)) ',slots))))
 
-(defstruct+ fred (k 23) (a 1) (_b 2))
+(defstruct+ options
+  (some 512))
+
+(defvar *the** (make-options))
+ 
 (defstruct+ some (n 0) (max 512) _all)
+(defun make-some (&key max)
 (defstruct+ num (n 0) (mu 0) (sd 0) (m2 0) (some (make-some)))
 (defstruct+ cols all x y klass)
 
@@ -57,5 +65,5 @@
 
 
 
-(format t "~&~a" (%make-fred))
+ 
 (print (make-cols nil));(with-lines "../data/auto93.csv" #'print)
