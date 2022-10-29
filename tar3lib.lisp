@@ -64,6 +64,14 @@
 
 (defmacro is (x)
  `(? (ata ,x *opts) current))
+(defmethod reset ((self option))
+    (setf (? self current) (? self default)))
+
+(defmethod update ((self option) v)
+  (with-slots (default current) self
+    (if (member default (list nil t))
+      (setf current (not current)) ; boolean flags need no val. just flip old
+      (setf  current v))))          ; otherwise, the val is the next arg
 
 (defun help()
   (whan (ata 'help *opts*)
@@ -73,18 +81,12 @@
               (unless (eql 'help)
                 (format t " ~5a [~5a] ~a" (? x flag) (? x current) (? x help)))))
 
-(defun reset () 
-  (loop for (key . x) in *opts* do
-    (setf (? x current) (? x default))))
+(defun resets () 
+  (dolist (x *opts*) (reset (cdr x))))
 
-(defun update (&aux (lst (args)))
-  (labels 
-    ((fn (x arg args)
-         (when arg
-           (if (equal arg (? x flag))
-             (if (member (? x default) (list nil t))
-               (setf (? x current) (not (? x current))) ; boolean flags need no val. just flip old
-               (setf (? x current) (1atom (car args))))); otherwise, the val is the next arg
-           (fn x (car args) (cdr args)))))
-    (dolist (x *opts* *opts*)
-      (fn x (car lst)  (cdr lst)))))
+(defun updates (&aux (lst (args)))
+  (labels ((update (x arg args)
+                   (when arg
+                     (if (equal arg (? x flag)) (update x (1atom (car args))))
+                     (fn x (car args) (cdr args)))))
+    (dolist (x *opts*) (update x (car lst)  (cdr lst)))))
