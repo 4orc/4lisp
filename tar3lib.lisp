@@ -1,5 +1,15 @@
 (defmacro ?  (s x &rest xs) (if (null xs) `(slot-value ,s ',x) `(? (slot-value ,s ',x) ,@xs)))
 
+(defmacro af (test-form then-form &optional else-form) 
+  `(let ((it ,test-form))
+     (if it ,then-form ,else-form)))
+
+(defmacro whan (test-form &body then-form)
+  `(let ((it ,test-form))
+     (when it ,@then-form)))
+
+(defun ata (x lst) (cdr (assoc x list)))
+
 (defun args  ()                   #+sbcl sb-ext:*posix-argv*        #+clisp ext:*args*)
 (defun stop  (&optional (code 0)) #+sbcl (sb-ext:exit :code code) #+:clisp (ext:exit code))
 
@@ -13,7 +23,7 @@
 (defun trim(x) (string-trim '(#\Space #\Tab #\Newline) x))
 
 (defun 1atom (x)
-  (let ((y (trim x)))
+  (letnam(y (trim x)))
     (cond ((equal y "t") t)
           ((equal y "nil") nil)
           (t (let ((z (read-from-string y nil nil))) 
@@ -45,27 +55,27 @@
      (oid (incf *oid*)) ,@body))
 ;;-----------------------------------------------------------
 ;; ## Options
-(defstruct+ option flag key default current help)
+(defstruct+ option flag default current help)
 
 (defvar *opts* nil)
 
 (defun opt (key val flag help)
-  (push (%make-option :key key :flag flag :help help :default val :current val) *opts*))
+  (push (cons key (%make-option :flag flag :help help :default val :current val) *opts*)))
 
 (defmacro is (x)
- `(dolist (y *opts*) (if (equal ',x (? y key)) (return (? y current)))))
+ `(? (ata ',x *opts) current))
 
 (defun help()
-  (let ((found (car (member 'help *opts* :test (lambda(y) (equal 'help (? y key)))))))
-    (when (and found (? found current))
-      (mapcar #'print (lines (? found help)))
-      (format t "~%OPTIONS:~%")
-      (dolist (x *opts*)
-        (unless (eql (? x key) 'help)
-          (format t " ~5a [~5a] ~a" (? x flag) (? x current) (? x help)))))))
+  (whan (ata 'help *opts*)
+        (mapcar #'print (lines (? it current)))
+        (format t "~%OPTIONS:~%")
+        (loop :for (key . x) :on *opts* :by #'cddr :do
+              (unless (eql 'help)
+                (format t " ~5a [~5a] ~a" (? x flag) (? x current) (? x help)))))
 
 (defun reset () 
-  (dolist (x *opts*) (setf (? x current) (? x default))))
+  (loop for (key . x) in *opts* do
+    (setf (? x current) (? x default))))
 
 (defun update (&aux (lst (args)))
   (labels 
