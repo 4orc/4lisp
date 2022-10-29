@@ -85,8 +85,7 @@
   (dolist (x *opts*) (reset (cdr x))))
 
 (defun updates (&aux (lst (args)))
-  (labels ((update (x arg args)
-                   (when arg
-                     (if (equal arg (? x flag)) (update x (1atom (car args))))
-                     (fn x (car args) (cdr args)))))
+  (labels ((update (x arg args) (when arg
+                                  (if (equal arg (? x flag)) (update x (1atom (car args))))
+                                  (fn x (car args) (cdr args)))))
     (dolist (x *opts*) (update x (car lst)  (cdr lst)))))
