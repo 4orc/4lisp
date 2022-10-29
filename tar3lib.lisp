@@ -63,7 +63,7 @@
   (push (cons key (%make-option :flag flag :help help :default val :current val) *opts*)))
 
 (defmacro is (x)
- `(? (ata ',x *opts) current))
+ `(? (ata ,x *opts) current))
 
 (defun help()
   (whan (ata 'help *opts*)
