@@ -1,5 +1,4 @@
 (defmacro ?  (s x &rest xs) (if (null xs) `(slot-value ,s ',x) `(? (slot-value ,s ',x) ,@xs)))
-(defmacro !! (x) `(second (slot-value *the* ',x)))
 
 (defun args  ()                   #+sbcl sb-ext:*posix-argv*        #+clisp ext:*args*)
 (defun stop  (&optional (code 0)) #+sbcl (sb-ext:exit :code code) #+:clisp (ext:exit code))
@@ -35,7 +34,7 @@
 (defstruct thing)
 (defmethod print-object ((self thing) str)
   (format str "(~a ~{~a~^ ~})" (type-of self)
-          (mapcar (lambda (x) (format nil ":~(~a~) ~a" x (slot-value self x))) 
+          (mapcar (lambda (x) (format nil ":~(~a~) ~s" x (slot-value self x))) 
                   (public-slots self))))
 
 (defvar *oid* 0)
@@ -44,24 +43,38 @@
   `(defstruct (,x (:include thing)
                   (:constructor ,(intern (format nil "%MAKE-~a" x)))) 
      (oid (incf *oid*)) ,@body))
+;;-----------------------------------------------------------
+;; ## Options
+(defstruct+ option flag key default current help)
 
-(defstruct+ option flag name default current help)
+(defvar *opts* nil)
 
-(let (all)
-  (defun opt (flag name val help)
-    (push (%make-option :name name :flag flag :help help :default val :current val) all))
+(defun opt (key val flag help)
+  (push (%make-option :key key :flag flag :help help :default val :current val) *opts*))
 
-  i;(loop for i from 0 and x across items
-    ;  do (format t "~a = ~a~%" i x))
+(defmacro is (x)
+ `(dolist (y *opts*) (if (equal ',x (? y key)) (return (? y current)))))
 
-  (defun options (&aux (args (args)))
-    (dolist (one all)
-      (dolist (arg while (setf arg (pop args))
-        (if (equal arg (? one flag))
-          (if (member (? one default) (list t nil))
-            (setf (? one current) (not (? one current)))
-            (setf (? one current) (1atom (pop args))))
-            (arg (args))
-        (if 
-)
+(defun help()
+  (let ((found (car (member 'help *opts* :test (lambda(y) (equal 'help (? y key)))))))
+    (when (and found (? found current))
+      (mapcar #'print (lines (? found help)))
+      (format t "~%OPTIONS:~%")
+      (dolist (x *opts*)
+        (unless (eql (? x key) 'help)
+          (format t " ~5a [~5a] ~a" (? x flag) (? x current) (? x help)))))))
 
+(defun reset () 
+  (dolist (x *opts*) (setf (? x current) (? x default))))
+
+(defun update (&aux (lst (args)))
+  (labels 
+    ((fn (x arg args)
+         (when arg
+           (if (equal arg (? x flag))
+             (if (member (? x default) (list nil t))
+               (setf (? x current) (not (? x current))) ; boolean flags need no val. just flip old
+               (setf (? x current) (1atom (car args))))); otherwise, the val is the next arg
+           (fn x (car args) (cdr args)))))
+    (dolist (x *opts* *opts*)
+      (fn x (car lst)  (cdr lst)))))
