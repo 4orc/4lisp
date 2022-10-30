@@ -1,9 +1,10 @@
-
 (load "tar3lib")
-(defstruct+ emp name (age 0))
 
-  (opt 'p 2 "-p" "whatever floats your boat")
-(print  (opt 'help nil "-h" "
+(opt "-h" "TAR3: recursive sampler
+           (c) 2022 Tim Menzies <timm@ieee.org> BSD-2" 'help  nil)
+(opt "-g" "start-up action; all= run all" 'go   "none")
+(opt "-p" "whatever floats your boat    " 'p    2)
+(opt "-s" "random number seed           " 'seed 10013)
 
-let tell you a stoprt bout a man"))
-
+(cli)
+(run)
