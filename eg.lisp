@@ -1,10 +1,26 @@
-(load "tar3lib")
+(load "eye")
 
-(opt "-h" "TAR3: recursive sampler
-           (c) 2022 Tim Menzies <timm@ieee.org> BSD-2" 'help  nil)
-(opt "-g" "start-up action; all= run all" 'go   "none")
-(opt "-p" "whatever floats your boat    " 'p    2)
-(opt "-s" "random number seed           " 'seed 10013)
+(eg hi() 
+  (format t "~&Welcome to keys~%") t)
+
+(eg options() 
+         (print *opts*))
+
+(eg sample()
+    (let ((s (make-sample 33)))
+      (dotimes (i 10000) (add s i))
+      (print (sorted s))))
+
+; (defun sym (the)
+;   (let ((n (add (make-sym) '("a" "b" "b" "c" "c" "c" "c"))))
+;     (want (< 1.378 (var n) 1.379) "bad ent")))
+;
+; (defun num (the)
+;   (let ((n (add (init(make-num  :txt "asd-"))
+;                 '(2 3 4 4 4 4  5  5  6  7 
+;                   7 8 9 9 9 9 10 11 12 12))))
+ ;   (want (= 3.125 (var n)) "bad sd")
+  ;  (want (= 7     (mid n)) "bad mean")))
 
 (cli)
 (run)

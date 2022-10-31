@@ -32,9 +32,9 @@
   #+clisp (clos:slot-definition-name x)   
   #+sbcl  (sb-mop:slot-definition-name x))
 
-(defun public-slots (self)
+(defun public-slots (i)
   (remove-if (lambda (x) (eq #\_ (char (symbol-name x) 0))) 
-             (mapcar 'slot-name (slots self))))
+             (mapcar 'slot-name (slots i))))
 
 ;-----------------------------------------------------------------------
 ;; ## Symbols
@@ -93,17 +93,17 @@
 
 ;-----------------------------------------------------------------------
 ;; ## Structs
-(defstruct thing)
-(defmethod print-object ((self thing) str)
-  (format str "(~a ~{~a~^ ~})" (type-of self)
-          (mapcar (lambda (x) (format nil ":~(~a~) ~s" x (slot-value self x))) 
-                  (public-slots self))))
+(defvar *oid* -1)
+(defstruct thing (oid (incf *oid*)))
 
-(defvar *oid* 0)
+(defmethod print-object ((i thing) str)
+  (format str "(~a ~{~a~^ ~})" (type-of i)
+          (mapcar (lambda (x) (format nil ":~(~a~) ~s" x (slot-value i x))) 
+                  (public-slots i))))
+
 (defmacro defstruct+ (x &body body) 
   `(defstruct (,x (:include thing)
-                  (:constructor ,(intern (format nil "%MAKE-~a" x)))) 
-     (oid (incf *oid*)) ,@body))
+                  (:constructor ,(intern (format nil "%MAKE-~a" x)))) ,@body))
 ;-----------------------------------------------------------
 ;; ## Options
 (defstruct+ opt flag default current help)
@@ -117,11 +117,11 @@
 (defmacro is (x)
  `(? (geta ',x *opts*) current))
 
-(defmethod reset1 ((self opt))
-  (setf (? self current) (? self default)))
+(defmethod default ((i opt))
+  (setf (? i current) (? i default)))
 
-(defmethod update ((self opt) v)
-  (with-slots (default current) self
+(defmethod update ((i opt) v)
+  (with-slots (default current) i
     (if (member default (list nil t))
       (setf current (not current)) ; boolean flags don't use val. just flip old
       (setf current v))))          ; otherwise, the val is the next arg
@@ -131,11 +131,11 @@
     (format t "~%~{~a~%~}~%OPTIONS:~%" (lines (? (geta 'help opts) help)))
     (loop for (key . x) in opts do 
           (unless (eql 'help key) 
-            (format t " ~5a ~a = ~a~%" (? x flag) (? x help) (? x current)))))
-  opts)
+            (format t " ~5a ~a = ~a~%" (? x flag) (? x help) (? x current))))
+    (stop)))
 
-(defun resets (opts) 
-  (dolist (x opts) (reset1 (cdr x)))
+(defun defaults (opts) 
+  (dolist (x opts) (default (cdr x)))
   (setf *seed* (is seed)))
 
 (defun cli (&optional (opts *opts*))
@@ -151,29 +151,15 @@
 
 (defvar *tests* nil)
 
-(defmacro deftest (name params &body body)
+(defmacro eg (name params &body body)
   `(progn (pushnew ',name *tests*) (defun ,name ,params  ,@body)))
-
-(deftest hi() 
-  (format t "~&Welcome to keys~%") t)
-
-(defun sym (the)
-  (let ((n (add (make-sym) '("a" "b" "b" "c" "c" "c" "c"))))
-    (want (< 1.378 (var n) 1.379) "bad ent")))
-
-(defun num (the)
-  (let ((n (add (init(make-num  :txt "asd-"))
-                '(2 3 4 4 4 4  5  5  6  7 
-                  7 8 9 9 9 9 10 11 12 12))))
-    (want (= 3.125 (var n)) "bad sd")
-    (want (= 7     (mid n)) "bad mean")))
 
 (defun run (&optional (tests *tests*) (opts *opts*))
   (let ((fails 0))
     (dolist (test tests)
       (when (or (equal (is go) "all") 
                 (equal (is go) (format nil "~(~a~)" test)))  
-        (resets opts)
+        (defaults opts)
         (cond ((funcall test) (format t "✅ pass ~a~%" test))
               (t              (format t "❌ fail ~a~%" test)
                               (incf fails)))))
