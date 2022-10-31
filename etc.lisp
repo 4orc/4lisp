@@ -76,7 +76,7 @@
   (setf *seed* (mod (* 16807.0d0 *seed*) 2147483647.0d0))
   (* n (- 1.0d0 (/ *seed* 2147483647.0d0))))
 
-(defun randi (&optional (n 1))
+(defun randi (&optional (n 1)) ;--> 0..n-1
   (floor (* n (/ (randf 1000000000.0) 1000000000))))
 
 (defmethod any ((i cons))   
@@ -90,6 +90,11 @@
 
 (defmethod many ((i vector) &optional (n 10)) 
   (loop repeat n collect (any i)))
+
+(defun rnd (number &optional (digits 3))
+  (let* ((div (expt 10 digits))
+         (tmp (/ (round (* number div)) div)))
+    (if (zerop digits) (floor tmp) (float tmp))))
 
 ;-----------------------------------------------------------------------
 ;; ## Structs

@@ -5,17 +5,19 @@
 (opt "-g" "start-up action; all= run all" 'go   "none")
 (opt "-p" "whatever floats your boat    " 'p    2)
 (opt "-s" "random number seed           " 'seed 10013)
-(opt "-S" "keep at most 'S' nums        " 'samples 25)
+(opt "-S" "keep at most 'S' nums        " 'samples 256)
 
 (defstruct+ sample 
   n (max (is samples)) ok
   (_all  (make-array 2 :fill-pointer 0 :adjustable t)))
 
-(defun make-sample (max &optional (is samples))
+(defun make-sample (&optional (max (is samples)))
   (%make-sample :max max))
 
-(defmethod add ((i  sample) (x number))
+(defmethod add ((i  sample) x )
+  (print (list 'x x (type-of x)))
   (incf (? i n))
+  (print 33211)
   (let ((size (length (? i _all))))
     (cond ((< size  (? i max))
            (setf (? i ok) nil)

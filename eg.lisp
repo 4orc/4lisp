@@ -1,14 +1,26 @@
 (load "eye")
 
-(eg hi() 
+(Eg hi() 
   (format t "~&Welcome to keys~%") t)
 
-(eg options() 
-         (print *opts*))
+(eg rndi()
+    (let (lst) 
+      (print (dotimes (i 100 (sort lst #'<)) 
+               (push (randi 10) lst)))))
 
-(eg sample()
-    (let ((s (make-sample 33)))
-      (dotimes (i 10000) (add s i))
+(eg rndf()
+    (let (lst) 
+      (print (dotimes (i 100 (sort lst #'<)) 
+               (push (rnd (randf 10)) lst)))))
+
+(eg pts() 
+    (print *opts*))
+
+(eg sml()
+    (let ((s (make-sample 32)))
+      (print s)
+      (print 32)
+      (dotimes (i 100) (add s i))
       (print (sorted s))))
 
 ; (defun sym (the)
@@ -19,8 +31,8 @@
 ;   (let ((n (add (init(make-num  :txt "asd-"))
 ;                 '(2 3 4 4 4 4  5  5  6  7 
 ;                   7 8 9 9 9 9 10 11 12 12))))
- ;   (want (= 3.125 (var n)) "bad sd")
-  ;  (want (= 7     (mid n)) "bad mean")))
+;   (want (= 3.125 (var n)) "bad sd")
+;  (want (= 7     (mid n)) "bad mean")))
 
 (cli)
 (run)
