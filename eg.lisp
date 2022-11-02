@@ -1,6 +1,6 @@
 (load "eye")
 
-(Eg hi() 
+(eg hi () 
   (format t "~&Welcome to keys~%") t)
 
 (eg rndi()
@@ -18,9 +18,7 @@
 
 (eg sml()
     (let ((s (make-sample 32)))
-      (print s)
-      (print 32)
-      (dotimes (i 100) (add s i))
+      (dotimes (i 10000)  (add s i))
       (print (sorted s))))
 
 ; (defun sym (the)

@@ -156,8 +156,8 @@
 
 (defvar *tests* nil)
 
-(defmacro eg (name params &body body)
-  `(progn (pushnew ',name *tests*) (defun ,name ,params  ,@body)))
+(defmacro eg (name &body body)
+  `(progn (pushnew ',name *tests*) (defun ,name ,@body)))
 
 (defun run (&optional (tests *tests*) (opts *opts*))
   (let ((fails 0))

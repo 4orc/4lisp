@@ -8,23 +8,22 @@
 (opt "-S" "keep at most 'S' nums        " 'samples 256)
 
 (defstruct+ sample 
-  n (max (is samples)) ok
+  (n 0) (max (is samples)) ok
   (_all  (make-array 2 :fill-pointer 0 :adjustable t)))
 
 (defun make-sample (&optional (max (is samples)))
   (%make-sample :max max))
 
 (defmethod add ((i  sample) x )
-  (print (list 'x x (type-of x)))
-  (incf (? i n))
-  (print 33211)
-  (let ((size (length (? i _all))))
-    (cond ((< size  (? i max))
-           (setf (? i ok) nil)
-           (vector-push-extend x (? i _all)))
-          ((< (randf) (/ (? i n) (? i max)))
-           (setf (? i ok) nil)
-           (setf (elt (? i _all) (randi size)) x)))))
+  (with-slots (n _all max ok) i
+    (incf n)
+    (let ((size (length  _all)))
+      (cond ((< size  max)
+             (setf ok nil)
+             (vector-push-extend x  _all))
+            ((< (randf) (/ max  n))
+             (setf  ok nil)
+             (setf (elt _all (randi size)) x))))))
 
 (defmethod per ((i sample) p)
   (let* ((all (sorted i))
