@@ -11,16 +11,16 @@
 (set-syntax-from-char #\, #\Space *csv-readtable*)
 
 (defun read-csv-line (string)
-  (with-input-from-string (stream string)
-    (loop for object = (read stream nil nil)
-          while object
-          collect object)))
+  (let ((*readtable* *csv-readtable*))
+    (with-input-from-string (stream string)
+      (loop for object = (read stream nil nil)
+            while object
+            collect object))))
 
 (defun csv (file fun)
-  (let ((*readtable* *csv-readtable*))
-    (with-open-file (stream file)
-      (awhile (read-line stream nil nil)
-              (funcall fun (read-csv-line it))))))
+  (with-open-file (stream file)
+    (awhile (read-line stream nil nil)
+            (funcall fun (read-csv-line it)))))
 
 (let ()
   (print 1)
